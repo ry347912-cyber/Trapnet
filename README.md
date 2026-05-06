@@ -76,76 +76,28 @@ Attacker arrives →  Fake SSH / HTTP panel →  Credentials captured
 
 ## 📸 Screenshots
 
-<table>
-  <tr>
-    <td align="center">
-      <b>🏠 Home Page</b><br/>
-      <sub>Live attack ticker · platform stats</sub><br/><br/>
-      <img src="screenshots/Home_png.png" width="380"/>
-    </td>
-    <td align="center">
-      <b>🕸 Honeypot — HTTP Login Panel</b><br/>
-      <sub>Fake corporate portal · credential capture</sub><br/><br/>
-      <img src="screenshots/Honeypot_png.png" width="380"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <b>🕸 Honeypot — SSH Terminal</b><br/>
-      <sub>Simulated Bash shell · command logging</sub><br/><br/>
-      <img src="screenshots/ssh_terminal_png.png" width="380"/>
-    </td>
-    <td align="center">
-      <b>📊 Dashboard — Attack Timeline</b><br/>
-      <sub>1,370 captures · 36 critical · 24h graph</sub><br/><br/>
-      <img src="screenshots/dashboard_png.png" width="380"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <b>📊 Dashboard — Risk & Top IPs</b><br/>
-      <sub>Donut chart · top IPs · credentials · MITRE</sub><br/><br/>
-      <img src="screenshots/dashbboard_png.png" width="380"/>
-    </td>
-    <td align="center">
-      <b>📋 Logs — Full Attack Table</b><br/>
-      <sub>1,373 records · searchable · filterable</sub><br/><br/>
-      <img src="screenshots/Logs_png.png" width="380"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <b>📋 Logs — Critical SSH Filtered</b><br/>
-      <sub>CRITICAL severity · SSH · Tehran / Beijing / Kyiv</sub><br/><br/>
-      <img src="screenshots/critcallogs_png.png" width="380"/>
-    </td>
-    <td align="center">
-      <b>🧠 Analytics — Country & ML Summary</b><br/>
-      <sub>5 Malicious · 4 Suspicious · 1 Benign</sub><br/><br/>
-      <img src="screenshots/analtic_png.png" width="380"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <b>🧠 Analytics — Hourly Distribution</b><br/>
-      <sub>Peak windows · Isolation Forest ~95.2% accuracy</sub><br/><br/>
-      <img src="screenshots/Anlaysss_png.png" width="380"/>
-    </td>
-    <td align="center">
-      <b>🧠 Analytics — ML Threat Table</b><br/>
-      <sub>Per-IP risk score · anomaly score · classification</sub><br/><br/>
-      <img src="screenshots/Analysis_png.png" width="380"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2">
-      <b>🔔 Alerts — Active Brute Force Feed</b><br/>
-      <sub>Real-time alerts · Kyiv · Mumbai · Tehran · Lagos · San Jose · Frankfurt</sub><br/><br/>
-      <img src="screenshots/Alerts_png.png" width="380"/>
-    </td>
-  </tr>
-</table>
+| | |
+|---|---|
+| **🏠 Home Page** | **🕸 Honeypot — HTTP Login Panel** |
+| ![Home](Home.png) | ![Honeypot](Honeypot.png) |
+| Live attack ticker · platform stats | Fake corporate portal · credential capture |
+| **🕸 Honeypot — SSH Terminal** | **📊 Dashboard — Attack Timeline** |
+| ![SSH Terminal](ssh%20terminal.png) | ![Dashboard](dashboard.png) |
+| Simulated Bash shell · command logging | 1,370 captures · 36 critical · 24h graph |
+| **📊 Dashboard — Risk & Top IPs** | **📋 Logs — Full Attack Table** |
+| ![Dashboard2](dashbboard.png) | ![Logs](Logs.png) |
+| Donut chart · top IPs · credentials · MITRE | 1,373 records · searchable · filterable |
+| **📋 Logs — Critical SSH Filtered** | **🧠 Analytics — Country & ML Summary** |
+| ![Critical Logs](critcallogs.png) | ![Analytics](analtic.png) |
+| CRITICAL severity · SSH · Tehran / Beijing / Kyiv | 5 Malicious · 4 Suspicious · 1 Benign |
+| **🧠 Analytics — Hourly Distribution** | **🧠 Analytics — ML Threat Table** |
+| ![Hourly](Anlaysss.png) | ![ML Analysis](Analysis.png) |
+| Peak windows · Isolation Forest ~95.2% accuracy | Per-IP risk score · anomaly score · classification |
+| **🔔 Alerts — Active Brute Force Feed** | |
+| ![Alerts](Alerts.png) | |
+| Real-time alerts · Kyiv · Mumbai · Tehran · Lagos | |
 
+     
 ---
 
 ## 🏗️ System Architecture
