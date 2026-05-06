@@ -76,81 +76,23 @@ Attacker arrives →  Fake SSH / HTTP panel →  Credentials captured
 
 ## 📸 Screenshots
 
-### 🏠 Home Page
-> Live attack ticker scrolling in real-time, platform stats and feature cards
-
-<img src="screenshots/Home_png.png" width="700"/>
-
----
-
-### 🕸 Honeypot — HTTP Login Panel
-> Fake corporate admin panel — silently captures every credential submitted
-
-<img src="screenshots/Honeypot_png.png" width="700"/>
-
----
-
-### 🕸 Honeypot — SSH Terminal Simulation
-> Simulated Bash shell with fake Ubuntu OS responses — logs every command
-
-<img src="screenshots/ssh_terminal_png.png" width="700"/>
-
----
-
-### 📊 Dashboard — Attack Timeline & Live Stats
-> 1,370 total captures · 36 critical threats · 6 active alerts · 24h attack graph
-
-<img src="screenshots/dashboard_png.png" width="700"/>
-
----
-
-### 📊 Dashboard — Risk Distribution, Top IPs & Credentials
-> Donut chart, top attacking IPs ranked, most-used credential pairs, MITRE techniques
-
-<img src="screenshots/dashbboard_png.png" width="700"/>
-
----
-
-### 📋 Logs — Full Attack Log Table
-> All 1,373 records — searchable by IP, username, password — filterable by risk & service
-
-<img src="screenshots/Logs_png.png" width="700"/>
-
----
-
-### 📋 Logs — Critical SSH Attacks Filtered
-> Filtered view: CRITICAL severity + SSH service — Tehran, Beijing, Kyiv source IPs
-
-<img src="screenshots/critcallogs_png.png" width="700"/>
-
----
-
-### 🧠 Analytics — Attacks by Country & ML Summary
-> 5 Malicious · 4 Suspicious · 1 Benign — bar chart of global attack origins
-
-<img src="screenshots/analtic_png.png" width="700"/>
-
----
-
-### 🧠 Analytics — Hourly Distribution & ML Model Info
-> Peak attack windows identified · Isolation Forest: 200 trees, ~95.2% accuracy
-
-<img src="screenshots/Anlaysss_png.png" width="700"/>
-
----
-
-### 🧠 Analytics — ML Threat Classification Table
-> Per-IP: attempts, commands, risk score bar, anomaly score, MALICIOUS/SUSPICIOUS/BENIGN
-
-<img src="screenshots/Analysis_png.png" width="700"/>
-
----
-
-### 🔔 Alerts — Active Brute Force Alert Feed
-> Real-time alerts from Kyiv, Mumbai, Tehran, Lagos, San Jose, Frankfurt — ACK button
-
-<img src="screenshots/Alerts_png.png" width="700"/>
-
+trapnet-xdr/          ← root (README.md yahan hai)
+├── README.md
+├── screenshots/      ← ⬅ YE FOLDER BANAO root me
+│   ├── Home_png.png
+│   ├── Honeypot_png.png
+│   ├── ssh_terminal_png.png
+│   ├── dashboard_png.png
+│   ├── dashbboard_png.png   ← (double b)
+│   ├── Logs_png.png
+│   ├── critcallogs_png.png
+│   ├── analtic_png.png
+│   ├── Anlaysss_png.png
+│   ├── Analysis_png.png
+│   └── Alerts_png.png
+├── frontend/
+├── backend/
+└── ...
 ---
 
 ## 🏗️ System Architecture
