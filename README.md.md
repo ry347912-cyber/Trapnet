@@ -77,79 +77,79 @@ Attacker arrives →  Fake SSH / HTTP panel →  Credentials captured
 ## 📸 Screenshots
 
 ### 🏠 Home Page
-> Live attack ticker, platform stats, feature showcase
+> Live attack ticker scrolling in real-time, platform stats and feature cards
 
-<img src="screenshots/Home_png.png" alt="Home Page" width="700"/>
+<img src="screenshots/Home_png.png" width="700"/>
 
-<br/>
+---
 
 ### 🕸 Honeypot — HTTP Login Panel
-> Fake corporate login panel that captures all credentials silently
+> Fake corporate admin panel — silently captures every credential submitted
 
-<img src="screenshots/Honeypot_png.png" alt="Honeypot HTTP" width="700"/>
+<img src="screenshots/Honeypot_png.png" width="700"/>
 
-<br/>
+---
 
 ### 🕸 Honeypot — SSH Terminal Simulation
-> Simulated Bash shell — logs every command entered by the attacker
+> Simulated Bash shell with fake Ubuntu OS responses — logs every command
 
-<img src="screenshots/ssh_terminal_png.png" alt="SSH Terminal" width="700"/>
+<img src="screenshots/ssh_terminal_png.png" width="700"/>
 
-<br/>
+---
 
-### 📊 Dashboard — Real-Time Stats & Attack Timeline
-> Total captures, critical threats, active alerts, 24-hour attack graph
+### 📊 Dashboard — Attack Timeline & Live Stats
+> 1,370 total captures · 36 critical threats · 6 active alerts · 24h attack graph
 
-<img src="screenshots/dashboard_png.png" alt="Dashboard Timeline" width="700"/>
+<img src="screenshots/dashboard_png.png" width="700"/>
 
-<br/>
+---
 
 ### 📊 Dashboard — Risk Distribution, Top IPs & Credentials
-> Donut chart, top attacking IPs, most used credentials, MITRE techniques
+> Donut chart, top attacking IPs ranked, most-used credential pairs, MITRE techniques
 
-<img src="screenshots/dashbboard_png.png" alt="Dashboard Risk" width="700"/>
+<img src="screenshots/dashbboard_png.png" width="700"/>
 
-<br/>
+---
 
 ### 📋 Logs — Full Attack Log Table
-> Searchable, filterable table of all captures with IP, service, credentials, MITRE tags
+> All 1,373 records — searchable by IP, username, password — filterable by risk & service
 
-<img src="screenshots/Logs_png.png" alt="Attack Logs" width="700"/>
+<img src="screenshots/Logs_png.png" width="700"/>
 
-<br/>
+---
 
 ### 📋 Logs — Critical SSH Attacks Filtered
-> Filtered view showing only CRITICAL severity SSH attacks
+> Filtered view: CRITICAL severity + SSH service — Tehran, Beijing, Kyiv source IPs
 
-<img src="screenshots/critcallogs_png.png" alt="Critical Logs" width="700"/>
+<img src="screenshots/critcallogs_png.png" width="700"/>
 
-<br/>
+---
 
-### 🧠 Analytics — Attacks by Country
-> Bar chart of attack origins with ML classification summary cards
+### 🧠 Analytics — Attacks by Country & ML Summary
+> 5 Malicious · 4 Suspicious · 1 Benign — bar chart of global attack origins
 
-<img src="screenshots/analtic_png.png" alt="Analytics Country" width="700"/>
+<img src="screenshots/analtic_png.png" width="700"/>
 
-<br/>
+---
 
 ### 🧠 Analytics — Hourly Distribution & ML Model Info
-> 24-hour heatmap showing peak attack windows + Isolation Forest model details
+> Peak attack windows identified · Isolation Forest: 200 trees, ~95.2% accuracy
 
-<img src="screenshots/Anlaysss_png.png" alt="Analytics Hourly" width="700"/>
+<img src="screenshots/Anlaysss_png.png" width="700"/>
 
-<br/>
+---
 
 ### 🧠 Analytics — ML Threat Classification Table
-> Per-IP risk scores, anomaly scores, MALICIOUS / SUSPICIOUS / BENIGN labels
+> Per-IP: attempts, commands, risk score bar, anomaly score, MALICIOUS/SUSPICIOUS/BENIGN
 
-<img src="screenshots/Analysis_png.png" alt="ML Analysis" width="700"/>
+<img src="screenshots/Analysis_png.png" width="700"/>
 
-<br/>
+---
 
 ### 🔔 Alerts — Active Brute Force Alert Feed
-> Real-time brute force alerts with source IP, city, attempt count, ACK button
+> Real-time alerts from Kyiv, Mumbai, Tehran, Lagos, San Jose, Frankfurt — ACK button
 
-<img src="screenshots/Alerts_png.png" alt="Alerts" width="700"/>
+<img src="screenshots/Alerts_png.png" width="700"/>
 
 ---
 
@@ -232,7 +232,22 @@ Model Performance:
 ## 📁 Project Structure
 
 ```
-trapnet-xdr/
+trapnet-xdr/                    ← GitHub repo root
+│
+├── README.md                   ← You are here ⬅
+│
+├── 📁 screenshots/             ← ⬅ All PNG files go HERE (same level as README)
+│   ├── Home_png.png
+│   ├── Honeypot_png.png
+│   ├── ssh_terminal_png.png
+│   ├── dashboard_png.png
+│   ├── dashbboard_png.png
+│   ├── Logs_png.png
+│   ├── critcallogs_png.png
+│   ├── analtic_png.png
+│   ├── Anlaysss_png.png
+│   ├── Analysis_png.png
+│   └── Alerts_png.png
 │
 ├── 📁 frontend/
 │   └── index.html              ← Complete React SPA (6 pages, self-contained)
@@ -250,21 +265,7 @@ trapnet-xdr/
 ├── 📁 database/
 │   └── (MongoDB schemas and seed scripts)
 │
-├── 📁 screenshots/             ← ⬅ All UI screenshots go here
-│   ├── Home_png.png
-│   ├── Honeypot_png.png
-│   ├── ssh_terminal_png.png
-│   ├── dashboard_png.png
-│   ├── dashbboard_png.png
-│   ├── Logs_png.png
-│   ├── critcallogs_png.png
-│   ├── analtic_png.png
-│   ├── Anlaysss_png.png
-│   ├── Analysis_png.png
-│   └── Alerts_png.png
-│
-├── docker-compose.yml          ← One-command full-stack deploy
-└── README.md                   ← You are here ⬅
+└── docker-compose.yml          ← One-command full-stack deploy
 ```
 
 ---
@@ -326,7 +327,7 @@ GET /api/health
 POST /api/honeypot/login
 Body: { service: "ssh"|"http", username, password }
 → Always returns 401 — NEVER grants access
-→ Logs the attempt with IP, geo, risk score, MITRE tags
+→ Logs: IP · geo · credentials · risk score · MITRE tags
 ```
 
 ### Command Capture
